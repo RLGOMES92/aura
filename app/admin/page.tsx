@@ -1,0 +1,83 @@
+import { revalidatePath } from "next/cache";
+import { getStats } from "@/lib/stats";
+import { getSpend, setSpend, spendEnabled } from "@/lib/spend";
+
+export const metadata = { title: "Admin", robots: { index: false, follow: false } };
+export const dynamic = "force-dynamic";
+
+const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(n);
+
+async function save(fd: FormData) {
+  "use server";
+  const spend: Record<string, number> = {};
+  for (const [k, v] of fd.entries())
+    if (k.startsWith("spend:")) spend[k.slice(6)] = Number(String(v).replace(",", ".")) || 0;
+  await setSpend(spend);
+  revalidatePath("/admin");
+}
+
+export default async function Admin() {
+  const [{ rows, missing, orders }, spend] = await Promise.all([getStats(30), getSpend()]);
+
+  const data = rows.map((r) => {
+    const contrib = r.net - r.printful - r.fees;
+    const ads = spend[r.product] ?? 0;
+    return { ...r, contrib, ads, profit: contrib - ads,
+      roas: ads > 0 ? r.net / ads : null, be: contrib > 0 ? r.net / contrib : null };
+  });
+  const sum = (k: "gross" | "net" | "contrib" | "ads" | "profit") => data.reduce((a, r) => a + r[k], 0);
+
+  return (
+    <main className="px-5 py-8">
+      <h1 className="text-3xl font-black tracking-tight">Últimos 30 dias</h1>
+      <p className="mt-1 text-sm text-stone">{orders} encomendas pagas. Valores estimados: IVA {Math.round(0.23 * 100)}% e taxas Stripe aproximadas.</p>
+      {missing > 0 && <p role="alert" className="mt-2 text-sm text-red-600">{missing} pedidos sem custo da Printful. A margem está sobrestimada.</p>}
+
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full min-w-[640px] text-left text-sm">
+          <thead><tr className="border-b border-black">
+            {["Produto", "Unid.", "Receita", "Margem antes de ads", "Ads", "Lucro", "ROAS", "ROAS mínimo"].map((h) => <th key={h} className="py-2 pr-3 font-semibold">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {data.map((r) => (
+              <tr key={r.product} className="border-b border-black/20">
+                <td className="py-2 pr-3 font-semibold">{r.product}</td>
+                <td className="pr-3">{r.units}</td>
+                <td className="pr-3">{eur(r.gross)}</td>
+                <td className="pr-3">{eur(r.contrib)}</td>
+                <td className="pr-3">{eur(r.ads)}</td>
+                <td className={`pr-3 font-bold ${r.profit < 0 ? "text-red-600" : ""}`}>{eur(r.profit)}</td>
+                <td className="pr-3">{r.roas ? r.roas.toFixed(2) : "—"}</td>
+                <td className="pr-3">{r.be ? r.be.toFixed(2) : "—"}</td>
+              </tr>
+            ))}
+            <tr className="font-bold">
+              <td className="py-2 pr-3">Total</td><td />
+              <td className="pr-3">{eur(sum("gross"))}</td><td className="pr-3">{eur(sum("contrib"))}</td>
+              <td className="pr-3">{eur(sum("ads"))}</td><td className="pr-3">{eur(sum("profit"))}</td><td /><td />
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="mt-10 text-xl font-bold">Gasto em anúncios (30 dias)</h2>
+      {!spendEnabled ? (
+        <p className="mt-2 text-sm text-stone">Define UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN para guardar o gasto.</p>
+      ) : (
+        <form action={save} className="mt-3 max-w-sm space-y-3">
+          {rows.map((r) => (
+            <label key={r.product} className="flex items-center justify-between gap-3 font-semibold">
+              {r.product}
+              <input name={`spend:${r.product}`} inputMode="decimal" defaultValue={spend[r.product] ?? 0}
+                className="w-28 border border-black bg-paper p-2 text-right" />
+            </label>
+          ))}
+          <button className="w-full bg-black py-3 font-bold text-paper">Guardar gasto</button>
+        </form>
+      )}
+      <p className="mt-6 max-w-md text-sm text-stone">
+        ROAS = receita sem IVA ÷ gasto. ROAS mínimo = o ROAS a partir do qual não perdes dinheiro. Estampas sem vendas não aparecem na tabela, por isso o gasto delas fica de fora até haver a primeira venda.
+      </p>
+    </main>
+  );
+}
