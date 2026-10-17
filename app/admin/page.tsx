@@ -95,7 +95,7 @@ export default async function Admin() {
         </form>
       )}
       <p className="mt-6 max-w-md text-sm text-stone">
-        ROAS = receita sem IVA ÷ gasto. ROAS mínimo = o ROAS a partir do qual não perdes dinheiro. Estampas sem vendas não aparecem na tabela, por isso o gasto delas fica de fora até haver a primeira venda.
+        ROAS = receita sem IVA ÷ gasto. ROAS mínimo = o ROAS a partir do qual não perdes dinheiro. Podes registar gastos mesmo antes da primeira venda; o ROAS só aparece quando houver receita.
       </p>
     </main>
   );
