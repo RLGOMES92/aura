@@ -63,7 +63,21 @@ export async function POST(req: Request) {
       }
     }
 
-    const site = process.env.NEXT_PUBLIC_SITE_URL!;
+    const site = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!site) {
+      console.error("[checkout] NEXT_PUBLIC_SITE_URL is not configured");
+      return NextResponse.json({ error: "checkout unavailable" }, { status: 503 });
+    }
+    let siteUrl: URL;
+    try {
+      siteUrl = new URL(site);
+    } catch {
+      return NextResponse.json({ error: "checkout unavailable" }, { status: 503 });
+    }
+    if (siteUrl.protocol !== "https:" && siteUrl.hostname !== "localhost") {
+      return NextResponse.json({ error: "checkout unavailable" }, { status: 503 });
+    }
+    const baseUrl = siteUrl.origin;
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lines,
@@ -79,8 +93,8 @@ export async function POST(req: Request) {
       phone_number_collection: { enabled: true },
       metadata,
       after_expiration: { recovery: { enabled: true } },
-      success_url: `${site}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: site,
+      success_url: `${baseUrl}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: baseUrl,
     });
     return NextResponse.json({ url: session.url });
   } catch (e) {
