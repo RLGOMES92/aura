@@ -73,7 +73,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#ff633e] px-5 py-16 md:px-10 md:py-24">
+      <section id="ideia" className="scroll-mt-24 bg-[#ff633e] px-5 py-16 md:px-10 md:py-24">
         <div className="grid gap-10 md:grid-cols-[1fr_1fr] md:items-end">
           <div>
             <p className="mb-4 text-xs font-black uppercase tracking-[0.2em]">02 — A ideia</p>
