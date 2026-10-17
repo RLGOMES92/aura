@@ -10,7 +10,7 @@ export async function sendPurchase(session: Stripe.Checkout.Session) {
 
   const email = session.customer_details?.email;
   const value = (session.amount_total ?? 0) / 100;
-  const time = Math.floor(Date.now() / 1000);
+  const time = session.created; // hora original do checkout, estável em reentregas do webhook
   const url = `${process.env.NEXT_PUBLIC_SITE_URL}/sucesso`;
   const jobs: Promise<Response>[] = [];
 
