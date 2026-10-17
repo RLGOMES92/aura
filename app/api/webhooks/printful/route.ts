@@ -27,18 +27,26 @@ export async function POST(req: Request) {
   let body: Payload;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }); }
 
-  // Cliente pagou mas a produção falhou: tens de agir (liga isto a Sentry/e-mail)
+  // Não confirmar como processado um pedido pago cuja produção falhou.
+  // O 5xx mantém a falha visível para nova tentativa/reconciliação operacional.
   if (body.type === "order_failed") {
-    console.error("[printful] ORDER FAILED", JSON.stringify(body.data));
-    return ok();
+    console.error("[printful] ORDER FAILED", {
+      orderId: body.data?.order?.id ?? null,
+      externalId: body.data?.order?.external_id ?? null,
+    });
+    return NextResponse.json({ error: "Printful order failed; requires operator review" }, { status: 500 });
   }
   if (body.type !== "package_shipped") return ok();
 
   const ext = body.data?.order?.external_id;
   const s = body.data?.shipment;
   if (!ext || !s?.tracking_url) {
-    console.error("[printful] shipment sem external_id/tracking_url", JSON.stringify(body.data));
-    return ok();
+    console.error("[printful] shipment sem external_id/tracking_url", {
+      orderId: body.data?.order?.id ?? null,
+      hasExternalId: Boolean(ext),
+      hasTrackingUrl: Boolean(s?.tracking_url),
+    });
+    return NextResponse.json({ error: "incomplete shipment payload" }, { status: 400 });
   }
 
   try {
@@ -49,7 +57,7 @@ export async function POST(req: Request) {
     const deal = found?.data?.[0];
     if (!deal) {
       console.error("[printful] Deal não encontrado para", ext);
-      return ok(); // não adianta a Printful repetir
+      return NextResponse.json({ error: "CRM deal not found" }, { status: 500 }); // mantém visível para reconciliação
     }
     if (deal.Tracking_URL === s.tracking_url) return ok(); // retry da Printful: não reenviar e-mail
 
