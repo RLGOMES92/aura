@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { eur } from "@/lib/products";
 import { ShippingProgress } from "./ShippingProgress";
 import { BundleSummary } from "./BundleSummary";
@@ -69,7 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   return (
     <CartCtx.Provider value={{ add, open: () => setOpen(true) }}>
       <header className="sticky top-0 z-30 flex items-center justify-between bg-paper/90 px-5 py-4 backdrop-blur">
-        <a href="/" className="text-lg font-extrabold tracking-tight">AURA VI VII</a>
+        <Link href="/" className="text-lg font-extrabold tracking-tight">AURA VI VII</Link>
         <button onClick={() => setOpen(true)} className="font-semibold" aria-label={`Abrir carrinho, ${count} artigos`}>
           Carrinho ({count})
         </button>
