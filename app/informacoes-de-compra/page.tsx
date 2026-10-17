@@ -37,7 +37,7 @@ export default function InformacoesDeCompra() {
         <p className="mt-3 max-w-xl leading-relaxed text-white/70">Se pretendes exercer o direito de retirada, utiliza o formulário dedicado para identificar a encomenda e enviar a declaração.</p>
         <Link href="/retirada" className="mt-6 inline-flex items-center gap-4 bg-[#d8ff36] px-6 py-4 font-black text-black transition hover:bg-[#ff633e]">IR PARA O FORMULÁRIO <span aria-hidden="true">↗</span></Link>
       </section>
-      <section className="px-5 pb-16 md:px-10">
+      <section className="px-5 pb-16 md:px-10">\n        <div className="mb-8 flex flex-wrap gap-x-6 gap-y-3 text-xs font-black uppercase tracking-wider">\n          <Link href="/legal/envios-e-devolucoes" className="border-b border-black pb-1 hover:text-[#e94f2e]">Envios e devoluções ↗</Link>\n          <Link href="/legal/termos" className="border-b border-black pb-1 hover:text-[#e94f2e]">Termos e condições ↗</Link>\n          <Link href="/legal/privacidade" className="border-b border-black pb-1 hover:text-[#e94f2e]">Privacidade ↗</Link>\n        </div>
         <p className="max-w-3xl text-xs leading-relaxed text-neutral-500">Esta página resume informações gerais da loja e não substitui os termos legais completos, as condições de envio e devolução nem a confirmação final apresentada durante a compra.</p>
         <Link href="/#colecao" className="mt-5 inline-flex border-b border-black pb-1 text-xs font-black uppercase tracking-wider">Voltar à coleção ↑</Link>
       </section>
