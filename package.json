@@ -5,7 +5,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "seed": "tsx --env-file=.env.local scripts/seed-stripe.ts"
+    "seed": "tsx --env-file=.env.local scripts/seed-stripe.ts",
+    "check:production-env": "node scripts/check-production-env.mjs"
   },
   "dependencies": {
     "next": "^15.1.0",
