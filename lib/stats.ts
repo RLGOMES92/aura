@@ -11,7 +11,7 @@ export const VAT = 0.23;          // IVA PT. Vendas OSS para outros países usam
 const STRIPE_PCT = 0.015;         // cartões europeus; cartões fora do EEE custam mais
 const STRIPE_FIXED = 0.25;
 
-export type Row = { product: string; orders: number; units: number; gross: number; net: number; printful: number; fees: number };
+export type Row = { product: string; orders: number; units: number; gross: number; net: number; printful: number; fees: number; costComplete: boolean };
 
 async function printfulCost(sessionId: string): Promise<number | null> {
   try {
@@ -19,7 +19,8 @@ async function printfulCost(sessionId: string): Promise<number | null> {
     if (process.env.PRINTFUL_STORE_ID) h["X-PF-Store-Id"] = process.env.PRINTFUL_STORE_ID;
     const r = await fetch(`https://api.printful.com/orders/@${sessionId}`, { headers: h });
     if (!r.ok) return null;
-    return parseFloat((await r.json()).result?.costs?.total ?? "0");
+    const total = Number((await r.json()).result?.costs?.total);
+    return Number.isFinite(total) && total > 0 ? total : null;
   } catch { return null; }
 }
 
@@ -27,9 +28,10 @@ async function compute(days: number) {
   const stripe = getStripe();
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   const paid: Stripe.Checkout.Session[] = [];
+  let truncated = false;
   for await (const s of stripe.checkout.sessions.list({ created: { gte: since }, limit: 100, expand: ["data.line_items"] })) {
     if (s.payment_status === "paid") paid.push(s);
-    if (paid.length >= 300) break;
+    if (paid.length >= 300) { truncated = true; break; }
   }
 
   const costs: (number | null)[] = [];
@@ -40,20 +42,23 @@ async function compute(days: number) {
   let missing = 0;
   paid.forEach((s, i) => {
     const total = (s.amount_total ?? 0) / 100;
-    const cost = costs[i] ?? (missing++, 0);
+    const cost = costs[i];
+    if (cost === null || cost === undefined) missing++;
     const lines = s.line_items?.data ?? [];
     const sum = lines.reduce((a, l) => a + l.amount_total, 0) || 1;
     for (const l of lines) {
       const name = (l.description ?? "Outro").split(" / ")[0];
       const share = l.amount_total / sum;
-      const r = rows.get(name) ?? { product: name, orders: 0, units: 0, gross: 0, net: 0, printful: 0, fees: 0 };
+      const r = rows.get(name) ?? { product: name, orders: 0, units: 0, gross: 0, net: 0, printful: 0, fees: 0, costComplete: true };
       r.orders += 1; r.units += l.quantity ?? 1;
       r.gross += total * share; r.net += (total / (1 + VAT)) * share;
-      r.printful += cost * share; r.fees += (total * STRIPE_PCT + STRIPE_FIXED) * share;
+      if (cost === null || cost === undefined) r.costComplete = false;
+      else r.printful += cost * share;
+      r.fees += (total * STRIPE_PCT + STRIPE_FIXED) * share;
       rows.set(name, r);
     }
   });
-  return { rows: [...rows.values()].sort((a, b) => b.gross - a.gross), missing, orders: paid.length };
+  return { rows: [...rows.values()].sort((a, b) => b.gross - a.gross), missing, orders: paid.length, truncated };
 }
 
 export const getStats = unstable_cache(compute, ["stats"], { revalidate: 300 });
