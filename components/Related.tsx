@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { products, eur } from "@/lib/products";
+import { products, brl } from "@/lib/products";
 
 // Server component. Mostra as outras peças na página de produto.
 export function Related({ current }: { current: string }) {
@@ -12,7 +12,7 @@ export function Related({ current }: { current: string }) {
         {others.map((p) => (
           <Link key={p.slug} href={`/produto/${p.slug}`} className="flex aspect-[3/2] flex-col justify-between bg-paper p-4">
             <span className="text-xl font-extrabold">{p.name}</span>
-            <span className="flex justify-between text-sm"><span className="text-stone">{p.tagline}</span><span className="font-bold">{eur(p.price)}</span></span>
+            <span className="flex justify-between text-sm"><span className="text-stone">{p.tagline}</span><span className="font-bold">{brl(p.price)}</span></span>
           </Link>
         ))}
       </div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { products, getProduct, eur } from "@/lib/products";
+import { products, getProduct, brl } from "@/lib/products";
 import { AddToCart } from "@/components/AddToCart";
 import { PageEvent } from "@/components/Pixels";
 import { Related } from "@/components/Related";
@@ -20,7 +20,7 @@ export default async function PDP({ params }: Props) {
   if (!p) notFound();
   const jsonLd = {
     "@context": "https://schema.org", "@type": "Product", name: p.name, description: p.description,
-    offers: { "@type": "Offer", priceCurrency: "EUR", price: p.price, availability: "https://schema.org/InStock" },
+    offers: { "@type": "Offer", priceCurrency: "BRL", price: p.price, availability: "https://schema.org/InStock" },
   };
   const details = [
     { label: "Conceito", value: p.tagline },
@@ -48,7 +48,7 @@ export default async function PDP({ params }: Props) {
           <h1 className="text-5xl font-black leading-[0.9] tracking-[-0.07em] md:text-7xl">{p.name}<span className="text-[#e94f2e]">.</span></h1>
           <p className="mt-5 max-w-lg text-base leading-relaxed text-neutral-600 md:text-lg">{p.description}</p>
           <div className="mt-7 flex items-end justify-between border-y-2 border-black py-5">
-            <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">Preço</p><p className="mt-1 text-3xl font-black tracking-tight">{eur(p.price)}</p></div>
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">Preço</p><p className="mt-1 text-3xl font-black tracking-tight">{brl(p.price)}</p></div>
             <p className="max-w-[145px] text-right text-xs leading-relaxed text-neutral-500">Escolhe o tamanho antes de adicionar ao carrinho.</p>
           </div>
           <div className="mt-6"><AddToCart product={p} /></div>

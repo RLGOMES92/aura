@@ -11,6 +11,15 @@ function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+function getBrazilTaxNumber(session: Stripe.Checkout.Session): string | null {
+  const field = session.custom_fields?.find((item) => item.key === "cpf_cnpj");
+  if (!field || field.type !== "text") return null;
+  const digits = (field.text?.value ?? "").replace(/\D/g, "");
+  if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  return null;
+}
+
 // --- Zoho: contacto existente é atualizado (sem mexer no nome); senão é criado ---
 async function upsertContact(email: string, name: string | null | undefined, extra: Record<string, unknown>) {
   const found = await zoho("GET", `Contacts/search?email=${encodeURIComponent(email)}`);
@@ -36,6 +45,10 @@ function hasPrintfulMetadata(session: Stripe.Checkout.Session) {
 async function createPrintfulOrder(session: Stripe.Checkout.Session) {
   const ship = session.collected_information?.shipping_details;
   if (!ship?.address) throw new Error("Sem morada de envio");
+  const taxNumber = getBrazilTaxNumber(session);
+  if (ship.address.country === "BR" && !taxNumber) {
+    throw new Error("CPF/CNPJ ausente ou inválido; pedido não enviado à Printful");
+  }
 
   const items = (session.line_items?.data ?? []).map((li) => {
     const product = li.price?.product as Stripe.Product | string | null | undefined;
@@ -66,7 +79,7 @@ async function createPrintfulOrder(session: Stripe.Checkout.Session) {
     throw new Error(`Printful lookup: HTTP ${existingResponse.status}`);
   }
 
-  // Por defeito cria RASCUNHO. Só confirma (e cobra o teu saldo) com PRINTFUL_CONFIRM=true.
+  // Por defeito cria RASCUNHO. Só confirma (e cobra o saldo) com PRINTFUL_CONFIRM=true.
   const confirm = process.env.PRINTFUL_CONFIRM === "true" ? "?confirm=true" : "";
   const res = await fetch(`https://api.printful.com/orders${confirm}`, {
     method: "POST",
@@ -77,6 +90,7 @@ async function createPrintfulOrder(session: Stripe.Checkout.Session) {
         name: ship.name, address1: ship.address.line1, address2: ship.address.line2 ?? "",
         city: ship.address.city, state_code: ship.address.state ?? "", country_code: ship.address.country,
         zip: ship.address.postal_code, email: session.customer_details?.email, phone: session.customer_details?.phone ?? "",
+        ...(taxNumber && { tax_number: taxNumber }),
       },
       items,
     }),
@@ -164,6 +178,10 @@ export async function POST(req: Request) {
     if (!session.collected_information?.shipping_details?.address || !session.customer_details?.email || !session.line_items?.data?.length || !hasPrintfulMetadata(session)) {
       console.warn(`[webhook] Ignorando checkout sintético/incompleto: ${session.id}`);
       return NextResponse.json({ received: true, ignored: true });
+    }
+    if (session.collected_information.shipping_details.address.country === "BR" && !getBrazilTaxNumber(session)) {
+      console.warn(`[webhook] CPF/CNPJ ausente ou inválido: ${session.id}`);
+      return NextResponse.json({ error: "CPF/CNPJ ausente ou inválido" }, { status: 400 });
     }
 
     // Lock distribuído: evita que entregas concorrentes criem dois registos no CRM.

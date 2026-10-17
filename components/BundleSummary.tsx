@@ -1,4 +1,4 @@
-import { products, eur } from "@/lib/products";
+import { products, brl } from "@/lib/products";
 import { BUNDLE, bundleDiscount } from "@/lib/bundle";
 import type { CartItem } from "./CartProvider";
 
@@ -9,7 +9,7 @@ export function BundleSummary({ items }: { items: CartItem[] }) {
   if (discount > 0)
     return (
       <p className="mb-3 flex justify-between text-sm font-semibold">
-        <span>Bundle {Math.round(BUNDLE.pct * 100)}%</span><span>−{eur(discount / 100)}</span>
+        <span>Bundle {Math.round(BUNDLE.pct * 100)}%</span><span>−{brl(discount / 100)}</span>
       </p>
     );
 
@@ -20,7 +20,7 @@ export function BundleSummary({ items }: { items: CartItem[] }) {
   const saving = bundleDiscount([...lines, { slug: missing.slug, qty: 1, unit: Math.round(missing.price * 100) }]);
   return (
     <p className="mb-3 text-sm">
-      Junta a <a href={`/produto/${missing.slug}`} className="font-bold underline">{missing.name}</a> e poupas {eur(saving / 100)}.
+      Junta a <a href={`/produto/${missing.slug}`} className="font-bold underline">{missing.name}</a> e poupas {brl(saving / 100)}.
     </p>
   );
 }

@@ -6,7 +6,7 @@ import { products } from "@/lib/products";
 export const metadata = { title: "Admin", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(n);
+const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
 async function save(fd: FormData) {
   "use server";
@@ -62,18 +62,18 @@ export default async function Admin() {
               <tr key={r.product} className="border-b border-black/20">
                 <td className="py-2 pr-3 font-semibold">{r.product}</td>
                 <td className="pr-3">{r.units}</td>
-                <td className="pr-3">{eur(r.gross)}</td>
-                <td className="pr-3">{r.costComplete ? eur(r.contrib) : "—"}</td>
-                <td className="pr-3">{eur(r.ads)}</td>
-                <td className={`pr-3 font-bold ${r.profit < 0 ? "text-red-600" : ""}`}>{r.costComplete ? eur(r.profit) : "—"}</td>
+                <td className="pr-3">{brl(r.gross)}</td>
+                <td className="pr-3">{r.costComplete ? brl(r.contrib) : "—"}</td>
+                <td className="pr-3">{brl(r.ads)}</td>
+                <td className={`pr-3 font-bold ${r.profit < 0 ? "text-red-600" : ""}`}>{r.costComplete ? brl(r.profit) : "—"}</td>
                 <td className="pr-3">{r.roas ? r.roas.toFixed(2) : "—"}</td>
                 <td className="pr-3">{r.be ? r.be.toFixed(2) : "—"}</td>
               </tr>
             ))}
             <tr className="font-bold">
               <td className="py-2 pr-3">Total</td><td />
-              <td className="pr-3">{eur(sum("gross"))}</td><td className="pr-3">{missing > 0 || truncated ? "—" : eur(sum("contrib"))}</td>
-              <td className="pr-3">{eur(sum("ads"))}</td><td className="pr-3">{missing > 0 || truncated ? "—" : eur(sum("profit"))}</td><td /><td />
+              <td className="pr-3">{brl(sum("gross"))}</td><td className="pr-3">{missing > 0 || truncated ? "—" : brl(sum("contrib"))}</td>
+              <td className="pr-3">{brl(sum("ads"))}</td><td className="pr-3">{missing > 0 || truncated ? "—" : brl(sum("profit"))}</td><td /><td />
             </tr>
           </tbody>
         </table>

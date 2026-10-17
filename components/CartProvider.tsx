@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { eur } from "@/lib/products";
+import { brl } from "@/lib/products";
 import { ShippingProgress } from "./ShippingProgress";
 import { BundleSummary } from "./BundleSummary";
 import { bundleDiscount } from "@/lib/bundle";
@@ -105,15 +105,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
                       <button onClick={() => change(i.priceId, 1)} aria-label="Mais">+</button>
                     </div>
                   </div>
-                  <p>{eur(i.price * i.qty)}</p>
+                  <p>{brl(i.price * i.qty)}</p>
                 </li>
               ))}
             </ul>
             {items.length > 0 && (
               <div className="border-t border-black pt-4">
-                <ShippingProgress total={net} />
+                <ShippingProgress />
                 <BundleSummary items={items} />
-                <div className="mb-3 flex justify-between font-bold"><span>Subtotal</span><span>{eur(net)}</span></div>
+                <div className="mb-3 flex justify-between font-bold"><span>Subtotal</span><span>{brl(net)}</span></div>
                 {error && <p role="alert" className="mb-2 text-sm text-red-600">{error}</p>}
                 <label className="mb-3 flex gap-2 text-sm">
                   <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
