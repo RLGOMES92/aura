@@ -78,6 +78,14 @@ async function syncZoho(session: Stripe.Checkout.Session, printfulId: number) {
   if (!email) return;
   const marketing = session.metadata?.marketing === "1";
   const contactId = await upsertContact(email, session.customer_details?.name, { Email_Opt_Out: !marketing });
+
+  // Stripe pode repetir o mesmo evento; consulta o ID da sessão antes de criar outro negócio.
+  const existingDeal = await zoho(
+    "GET",
+    `Deals/search?criteria=${encodeURIComponent(`(Stripe_Session_ID:equals:${session.id})`)}`,
+  );
+  if (existingDeal?.data?.length) return;
+
   await zoho("POST", "Deals", {
     data: [{
       Deal_Name: `Pedido ${session.id.slice(-8)}`,
