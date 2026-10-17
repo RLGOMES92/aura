@@ -8,7 +8,7 @@
 
 ## 2. Stripe
 - Teste: STRIPE_SECRET_KEY. Corre `npm run seed` (gera lib/price-map.json). Confirma os tamanhos.
-- Webhook de produção para /api/webhooks/stripe com os eventos: checkout.session.completed e checkout.session.expired.
+- Webhook de produção para /api/webhooks/stripe com os eventos: checkout.session.completed, checkout.session.async_payment_succeeded e checkout.session.expired. O fulfillment só avança com payment_status=paid.
 - Opcional: cupão VOLTA10 (código promocional) para o e-mail 3.
 
 ## 3. Zoho CRM (região EU)
