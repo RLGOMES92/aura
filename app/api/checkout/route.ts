@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import Stripe from "stripe";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, COUNTRIES } from "@/lib/shipping";
+import { SHIPPING_FEE, COUNTRIES } from "@/lib/shipping";
 import { bundleDiscount, slugOfPrice } from "@/lib/bundle";
 import { products } from "@/lib/products";
 
@@ -23,29 +23,24 @@ export async function POST(req: Request) {
       Object.values(p.variants).map((priceId) => [priceId, Math.round(p.price * 100)] as const)
     ));
     if (items.some((item) => !item || typeof item.priceId !== "string" || !expectedAmounts.has(item.priceId)
-      || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 10)) {
+      || item.priceId.startsWith("price_REPLACE_") || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 10)) {
       return NextResponse.json({ error: "invalid item" }, { status: 400 });
     }
     const lines = items.map((i) => ({ price: i.priceId, quantity: i.qty }));
-
-    // Tudo o que influencia o preço é calculado aqui, nunca no cliente.
-    // Só aceitamos preços ativos, únicos e em EUR configurados no catálogo do servidor.
     const prices = await Promise.all(lines.map((l) => stripe.prices.retrieve(l.price)));
-    if (prices.some((p) => !p.active || p.currency !== "eur" || p.type !== "one_time"
-      || !p.unit_amount || p.unit_amount <= 0 || p.unit_amount !== expectedAmounts.get(p.id))) {
+    if (prices.some((p) => !p.active || p.currency !== "brl" || p.type !== "one_time"
+      || p.unit_amount !== expectedAmounts.get(p.id) || !p.unit_amount || p.unit_amount <= 0)) {
       return NextResponse.json({ error: "invalid item" }, { status: 400 });
     }
+
     const subtotal = prices.reduce((s, p, i) => s + (p.unit_amount ?? 0) * lines[i].quantity, 0);
     const discount = bundleDiscount(
       prices.map((p, i) => ({ slug: slugOfPrice.get(p.id), qty: lines[i].quantity, unit: p.unit_amount ?? 0 }))
     );
-    const free = subtotal - discount >= FREE_SHIPPING_THRESHOLD * 100;
-
-    // A Stripe não aceita `discounts` e `allow_promotion_codes` na mesma sessão
     const discountParams: Partial<Stripe.Checkout.SessionCreateParams> =
       discount > 0
         ? { discounts: [{ coupon: (await stripe.coupons.create({
-            amount_off: discount, currency: "eur", duration: "once", max_redemptions: 1, name: "Bundle",
+            amount_off: discount, currency: "brl", duration: "once", max_redemptions: 1, name: "Combo AURA",
           })).id }] }
         : { allow_promotion_codes: true };
 
@@ -64,37 +59,30 @@ export async function POST(req: Request) {
     }
 
     const site = process.env.NEXT_PUBLIC_SITE_URL;
-    if (!site) {
-      console.error("[checkout] NEXT_PUBLIC_SITE_URL is not configured");
-      return NextResponse.json({ error: "checkout unavailable" }, { status: 503 });
-    }
+    if (!site) return NextResponse.json({ error: "checkout unavailable" }, { status: 503 });
     let siteUrl: URL;
-    try {
-      siteUrl = new URL(site);
-    } catch {
+    try { siteUrl = new URL(site); } catch { return NextResponse.json({ error: "checkout unavailable" }, { status: 503 }); }
+    if (siteUrl.protocol !== "https:" && siteUrl.hostname !== "localhost")
       return NextResponse.json({ error: "checkout unavailable" }, { status: 503 });
-    }
-    if (siteUrl.protocol !== "https:" && siteUrl.hostname !== "localhost") {
-      return NextResponse.json({ error: "checkout unavailable" }, { status: 503 });
-    }
-    const baseUrl = siteUrl.origin;
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      currency: "brl",
       line_items: lines,
       ...discountParams,
       shipping_address_collection: { allowed_countries: [...COUNTRIES] },
       shipping_options: [{
         shipping_rate_data: {
           type: "fixed_amount",
-          fixed_amount: { amount: free ? 0 : Math.round(SHIPPING_FEE * 100), currency: "eur" },
-          display_name: free ? "Envio grátis" : "Envio standard",
+          fixed_amount: { amount: Math.round(SHIPPING_FEE * 100), currency: "brl" },
+          display_name: "Frete",
         },
       }],
       phone_number_collection: { enabled: true },
       metadata,
       after_expiration: { recovery: { enabled: true } },
-      success_url: `${baseUrl}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: baseUrl,
+      success_url: `${siteUrl.origin}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: siteUrl.origin,
     });
     return NextResponse.json({ url: session.url });
   } catch (e) {
