@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { products, eur } from "@/lib/products";
+import { products, brl } from "@/lib/products";
 
 // Server component. Mostra as outras peças na página de produto.
 export function Related({ current }: { current: string }) {
