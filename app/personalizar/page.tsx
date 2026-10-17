@@ -34,6 +34,7 @@ export default function PersonalizarPage() {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [copied, setCopied] = useState(false);
+  const [fileError, setFileError] = useState("");
 
   useEffect(() => {
     if (!file) { setPreview(""); return; }
@@ -44,6 +45,21 @@ export default function PersonalizarPage() {
   }, [file]);
 
   const brief = `Olá! Quero consultar uma personalização na AURA VI VII.\nNome: ${name || "Não informado"}\nQuero: ${mode === "arte" ? "Enviar minha própria arte" : "Criar uma arte do zero"}\nPeça: ${product}\nTamanho: ${size}\nFrase/ideia: ${phrase || "A combinar"}\nCor principal da arte: ${inkOptions.find((c) => c.value === ink)?.label}\nDetalhes: ${notes || "A combinar"}\nArquivo: ${file?.name || "Não anexado"}\nPodem confirmar viabilidade, valor e prazo?`;
+
+  function handleFileChange(nextFile: File | null) {
+    setFileError("");
+    if (nextFile && nextFile.size > 10 * 1024 * 1024) {
+      setFile(null);
+      setFileError("O arquivo ultrapassa 10 MB. Escolha uma versão menor.");
+      return;
+    }
+    if (nextFile && !["image/png", "image/jpeg", "image/webp", "application/pdf"].includes(nextFile.type)) {
+      setFile(null);
+      setFileError("Formato não suportado. Use PNG, JPG, WEBP ou PDF.");
+      return;
+    }
+    setFile(nextFile);
+  }
 
   async function copyBrief() {
     try {
@@ -63,9 +79,9 @@ export default function PersonalizarPage() {
           <section>
             <p className="mb-4 inline-flex bg-[#ff633e] px-3 py-2 text-xs font-black uppercase tracking-[0.16em]">AURA VI VII / PERSONALIZAÇÃO</p>
             <h1 className="text-5xl font-black leading-[0.88] tracking-[-0.07em] md:text-7xl">NÃO ACHOU<br />DO SEU JEITO?<br /><span className="text-[#ff633e]">CRIE.</span></h1>
-            <p className="mt-6 max-w-lg text-base leading-relaxed text-black/70 md:text-lg">Você pode enviar sua própria arte ou começar com uma frase e uma cor. Preencha as ideias abaixo para preparar seu pedido de personalização.</p>
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-black/70 md:text-lg">Você pode selecionar sua própria arte ou começar com uma frase e uma cor. Por enquanto, o arquivo é apenas pré-visualizado no seu dispositivo; a solicitação ainda precisa ser enviada à equipe.</p>
             <div className="mt-8 flex gap-2"><button type="button" onClick={() => setMode("arte")} className={`flex-1 border-2 border-black p-4 text-left text-sm font-black uppercase ${mode === "arte" ? "bg-[#d8ff36]" : "bg-white"}`}>01 / Tenho minha arte</button><button type="button" onClick={() => setMode("criar")} className={`flex-1 border-2 border-black p-4 text-left text-sm font-black uppercase ${mode === "criar" ? "bg-[#d8ff36]" : "bg-white"}`}>02 / Criar do zero</button></div>
-            <div className="mt-6 border-2 border-black bg-white p-5"><label className="block text-xs font-black uppercase tracking-wide" htmlFor="artfile">{mode === "arte" ? "Envie sua arte (PNG, JPG, WEBP ou PDF)" : "Imagem de referência (opcional)"}</label><input id="artfile" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="mt-3 block w-full text-sm file:mr-3 file:border-0 file:bg-black file:px-4 file:py-3 file:font-bold file:text-white" />{file && <p className="mt-2 break-all text-xs text-black/60">Arquivo selecionado: {file.name}. Para enviar a imagem final, anexe o arquivo no contato com a equipe.</p>}{preview && <div className="relative mt-4 aspect-video overflow-hidden border border-black/10 bg-[#f5f2eb]"><Image src={preview} alt="Prévia da arte enviada" fill unoptimized className="object-contain p-3" /></div>}</div>
+            <div className="mt-6 border-2 border-black bg-white p-5"><label className="block text-xs font-black uppercase tracking-wide" htmlFor="artfile">{mode === "arte" ? "Envie sua arte (PNG, JPG, WEBP ou PDF)" : "Imagem de referência (opcional)"}</label><input id="artfile" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)} className="mt-3 block w-full text-sm file:mr-3 file:border-0 file:bg-black file:px-4 file:py-3 file:font-bold file:text-white" />{fileError && <p role="alert" className="mt-2 text-xs font-bold text-red-700">{fileError}</p>}{file && <p className="mt-2 break-all text-xs text-black/60">Arquivo selecionado: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB). Ele fica apenas nesta prévia do navegador; para enviar a arte final, anexe-o no contato com a equipe.</p>}{preview && <div className="relative mt-4 aspect-video overflow-hidden border border-black/10 bg-[#f5f2eb]"><Image src={preview} alt="Prévia da arte enviada" fill unoptimized className="object-contain p-3" /></div>}</div>
             <p className="mt-5 text-xs leading-relaxed text-black/55">A prévia de frase e cor é apenas uma ideia inicial, não uma simulação exata da estampa. Toda personalização depende de análise e confirmação de preço e prazo.</p>
           </section>
           <section className="border-2 border-black bg-white p-5 md:p-8">
@@ -73,7 +89,7 @@ export default function PersonalizarPage() {
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <label className="text-xs font-black uppercase tracking-wide">Seu nome<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Como podemos chamar você?" className="mt-2 block w-full border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black" /></label>
               <label className="text-xs font-black uppercase tracking-wide">Peça<select value={product} onChange={(e) => setProduct(e.target.value)} className="mt-2 block w-full border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black"><option>Camiseta</option><option>Moletom com capuz</option><option>Outra peça (consultar)</option></select></label>
-              <label className="text-xs font-black uppercase tracking-wide">Tamanho<select value={size} onChange={(e) => setSize(e.target.value)} className="mt-2 block w-full border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black">{["P", "M", "G", "GG", "Preciso de ajuda"].map((s) => <option key={s}>{s}</option>)}</select></label>
+              <label className="text-xs font-black uppercase tracking-wide">Tamanho<select value={size} onChange={(e) => setSize(e.target.value)} className="mt-2 block w-full border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black">{["S", "M", "L", "XL", "Preciso de ajuda"].map((s) => <option key={s}>{s}</option>)}</select></label>
               <label className="text-xs font-black uppercase tracking-wide">Frase ou ideia<input value={phrase} onChange={(e) => setPhrase(e.target.value)} maxLength={60} placeholder="Sua frase, nome ou conceito" className="mt-2 block w-full border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black" /></label>
             </div>
             <div className="mt-6"><p className="text-xs font-black uppercase tracking-wide">Cor principal da arte (paleta tradicional)</p><div className="mt-3 flex flex-wrap gap-3">{inkOptions.map((c) => <button key={c.value} type="button" onClick={() => setInk(c.value)} aria-label={c.label} aria-pressed={ink === c.value} className={`h-10 w-10 rounded-full border-2 ${ink === c.value ? "border-black ring-2 ring-black ring-offset-2" : "border-black/20"}`} title={c.label} style={{ backgroundColor: c.value }} />)}<span className="self-center text-xs text-black/55">{inkOptions.find((c) => c.value === ink)?.label}</span></div></div>
