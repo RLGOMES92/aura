@@ -35,3 +35,9 @@ Os textos dos e-mails estão no chat; cola-os nos templates.
 - Vercel + domínio HTTPS, NEXT_PUBLIC_SITE_URL, chaves live, PRINTFUL_CONFIRM=true só aqui, ADMIN_USER/ADMIN_PASS fortes, Upstash.
 - Sentry (ligar a [printful], [zoho], [capi], order_failed).
 - Compra real de baixo valor + reembolso antes de qualquer anúncio.
+
+## 8. Idempotência obrigatória antes de aceitar pedidos
+- Configura `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` na Vercel (Production e Preview de teste). O webhook Stripe e o formulário de retirada falham de forma segura se o Redis não estiver configurado.
+- O webhook usa um lock distribuído por sessão Stripe e uma marca de conclusão com TTL de 30 dias. Se o Zoho falhar, a Stripe recebe erro para repetir; a repetição procura o pedido Printful existente pelo `external_id` antes de tentar sincronizar o CRM novamente.
+- Testa primeiro com chaves de teste Stripe e uma loja Printful de teste/drafts. Só ativa `PRINTFUL_CONFIRM=true` depois de validar custos, morada, variante e saldo, porque isso submete pedidos à produção e cobra o saldo Printful.
+- Não publiques enquanto os campos legais em `lib/legal.ts` e `components/Footer.tsx` tiverem valores de exemplo, e enquanto os campos personalizados/workflows do Zoho não estiverem criados e verificados.
