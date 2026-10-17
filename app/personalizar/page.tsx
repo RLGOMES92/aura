@@ -6,9 +6,21 @@ import { useEffect, useState } from "react";
 
 const inkOptions = [
   { label: "Preto", value: "#111111" },
-  { label: "Verde-lima", value: "#d8ff36" },
-  { label: "Laranja", value: "#ff633e" },
   { label: "Branco", value: "#ffffff" },
+  { label: "Cinza", value: "#808080" },
+  { label: "Grafite", value: "#383838" },
+  { label: "Azul-marinho", value: "#14213d" },
+  { label: "Azul", value: "#1769aa" },
+  { label: "Azul-claro", value: "#87ceeb" },
+  { label: "Vermelho", value: "#d62828" },
+  { label: "Vinho", value: "#722f37" },
+  { label: "Verde", value: "#2d6a4f" },
+  { label: "Verde-lima", value: "#d8ff36" },
+  { label: "Amarelo", value: "#ffd60a" },
+  { label: "Laranja", value: "#ff633e" },
+  { label: "Rosa", value: "#f4a6c1" },
+  { label: "Roxo", value: "#6a4c93" },
+  { label: "Bege", value: "#d6c3a5" },
 ];
 
 export default function PersonalizarPage() {
@@ -31,7 +43,7 @@ export default function PersonalizarPage() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const brief = `Olá! Quero consultar uma personalização na AURA VI VII.\nNome: ${name || "Não informado"}\nQuero: ${mode === "arte" ? "Enviar minha própria arte" : "Criar uma arte do zero"}\nPeça: ${product}\nTamanho: ${size}\nFrase/ideia: ${phrase || "A combinar"}\nCor sugerida: ${inkOptions.find((c) => c.value === ink)?.label}\nDetalhes: ${notes || "A combinar"}\nArquivo: ${file?.name || "Não anexado"}\nPodem confirmar viabilidade, valor e prazo?`;
+  const brief = `Olá! Quero consultar uma personalização na AURA VI VII.\nNome: ${name || "Não informado"}\nQuero: ${mode === "arte" ? "Enviar minha própria arte" : "Criar uma arte do zero"}\nPeça: ${product}\nTamanho: ${size}\nFrase/ideia: ${phrase || "A combinar"}\nCor principal da arte: ${inkOptions.find((c) => c.value === ink)?.label}\nDetalhes: ${notes || "A combinar"}\nArquivo: ${file?.name || "Não anexado"}\nPodem confirmar viabilidade, valor e prazo?`;
 
   async function copyBrief() {
     try {
@@ -64,7 +76,7 @@ export default function PersonalizarPage() {
               <label className="text-xs font-black uppercase tracking-wide">Tamanho<select value={size} onChange={(e) => setSize(e.target.value)} className="mt-2 block w-full border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black">{["P", "M", "G", "GG", "Preciso de ajuda"].map((s) => <option key={s}>{s}</option>)}</select></label>
               <label className="text-xs font-black uppercase tracking-wide">Frase ou ideia<input value={phrase} onChange={(e) => setPhrase(e.target.value)} maxLength={60} placeholder="Sua frase, nome ou conceito" className="mt-2 block w-full border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black" /></label>
             </div>
-            <div className="mt-6"><p className="text-xs font-black uppercase tracking-wide">Cor principal sugerida</p><div className="mt-3 flex flex-wrap gap-3">{inkOptions.map((c) => <button key={c.value} type="button" onClick={() => setInk(c.value)} aria-label={c.label} aria-pressed={ink === c.value} className={`h-10 w-10 border-2 ${ink === c.value ? "border-black ring-2 ring-black ring-offset-2" : "border-black/20"}`} style={{ backgroundColor: c.value }} />)}<span className="self-center text-xs text-black/55">{inkOptions.find((c) => c.value === ink)?.label}</span></div></div>
+            <div className="mt-6"><p className="text-xs font-black uppercase tracking-wide">Cor principal da arte (paleta tradicional)</p><div className="mt-3 flex flex-wrap gap-3">{inkOptions.map((c) => <button key={c.value} type="button" onClick={() => setInk(c.value)} aria-label={c.label} aria-pressed={ink === c.value} className={`h-10 w-10 rounded-full border-2 ${ink === c.value ? "border-black ring-2 ring-black ring-offset-2" : "border-black/20"}`} title={c.label} style={{ backgroundColor: c.value }} />)}<span className="self-center text-xs text-black/55">{inkOptions.find((c) => c.value === ink)?.label}</span></div></div>
             <label className="mt-6 block text-xs font-black uppercase tracking-wide">Conte mais detalhes<textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Onde quer a estampa? Tem alguma referência? Conte aqui..." className="mt-2 block w-full resize-y border-2 border-black/15 bg-[#f5f2eb] p-3 text-sm font-medium normal-case outline-none focus:border-black" /></label>
             <div className="mt-6 overflow-hidden border-2 border-black bg-[#111] p-5 text-white"><div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em]"><span>Prévia de conceito</span><span>AURA STUDIO</span></div><div className="mt-6 flex min-h-48 items-center justify-center bg-[#f5f2eb] p-6"><div className="max-w-full break-words text-center text-3xl font-black uppercase leading-[0.9] tracking-[-0.06em] md:text-5xl" style={{ color: ink }}>{phrase || "SUA IDEIA AQUI"}</div></div><p className="mt-3 text-xs text-white/60">Conceito ilustrativo. A aplicação final será confirmada com você.</p></div>
             <button type="button" onClick={copyBrief} className="mt-6 min-h-14 w-full bg-[#d8ff36] px-5 py-4 text-sm font-black uppercase tracking-wide transition hover:bg-[#ff633e]">{copied ? "Briefing copiado! ✓" : "Copiar briefing para enviar ↗"}</button>
