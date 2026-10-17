@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { getStats } from "@/lib/stats";
 import { getSpend, setSpend, spendEnabled } from "@/lib/spend";
+import { products } from "@/lib/products";
 
 export const metadata = { title: "Admin", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -9,21 +10,31 @@ const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", c
 
 async function save(fd: FormData) {
   "use server";
-  const spend: Record<string, number> = {};
-  for (const [k, v] of fd.entries())
-    if (k.startsWith("spend:")) spend[k.slice(6)] = Number(String(v).replace(",", ".")) || 0;
+  const allowed = new Set(products.map((p) => p.name));
+  const spend: Record<string, number> = { ...(await getSpend()) };
+  for (const [k, v] of fd.entries()) {
+    if (!k.startsWith("spend:")) continue;
+    const product = k.slice(6);
+    const raw = String(v).trim().replace(",", ".");
+    const amount = Number(raw);
+    if (!allowed.has(product) || raw === "" || !Number.isFinite(amount) || amount < 0 || amount > 1_000_000) {
+      throw new Error("Gasto inválido: usa um valor não negativo e um produto válido.");
+    }
+    spend[product] = amount;
+  }
   await setSpend(spend);
   revalidatePath("/admin");
 }
 
 export default async function Admin() {
-  const [{ rows, missing, orders }, spend] = await Promise.all([getStats(30), getSpend()]);
+  const [{ rows, missing, orders, truncated }, spend] = await Promise.all([getStats(30), getSpend()]);
 
   const data = rows.map((r) => {
     const contrib = r.net - r.printful - r.fees;
     const ads = spend[r.product] ?? 0;
     return { ...r, contrib, ads, profit: contrib - ads,
-      roas: ads > 0 ? r.net / ads : null, be: contrib > 0 ? r.net / contrib : null };
+      roas: ads > 0 && r.costComplete ? r.net / ads : null,
+      be: contrib > 0 && r.costComplete ? r.net / contrib : null };
   });
   const sum = (k: "gross" | "net" | "contrib" | "ads" | "profit") => data.reduce((a, r) => a + r[k], 0);
 
@@ -31,7 +42,8 @@ export default async function Admin() {
     <main className="px-5 py-8">
       <h1 className="text-3xl font-black tracking-tight">Últimos 30 dias</h1>
       <p className="mt-1 text-sm text-stone">{orders} encomendas pagas. Valores estimados: IVA {Math.round(0.23 * 100)}% e taxas Stripe aproximadas.</p>
-      {missing > 0 && <p role="alert" className="mt-2 text-sm text-red-600">{missing} pedidos sem custo da Printful. A margem está sobrestimada.</p>}
+      {missing > 0 && <p role="alert" className="mt-2 text-sm text-red-600">{missing} pedidos sem custo confirmado da Printful. As margens e o lucro total ficam indisponíveis até os custos serem reconciliados.</p>}
+      {truncated && <p role="alert" className="mt-2 text-sm text-red-600">Relatório limitado a 300 encomendas pagas; os totais podem estar incompletos.</p>}
 
       <div className="mt-6 overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -44,17 +56,17 @@ export default async function Admin() {
                 <td className="py-2 pr-3 font-semibold">{r.product}</td>
                 <td className="pr-3">{r.units}</td>
                 <td className="pr-3">{eur(r.gross)}</td>
-                <td className="pr-3">{eur(r.contrib)}</td>
+                <td className="pr-3">{r.costComplete ? eur(r.contrib) : "—"}</td>
                 <td className="pr-3">{eur(r.ads)}</td>
-                <td className={`pr-3 font-bold ${r.profit < 0 ? "text-red-600" : ""}`}>{eur(r.profit)}</td>
+                <td className={`pr-3 font-bold ${r.profit < 0 ? "text-red-600" : ""}`}>{r.costComplete ? eur(r.profit) : "—"}</td>
                 <td className="pr-3">{r.roas ? r.roas.toFixed(2) : "—"}</td>
                 <td className="pr-3">{r.be ? r.be.toFixed(2) : "—"}</td>
               </tr>
             ))}
             <tr className="font-bold">
               <td className="py-2 pr-3">Total</td><td />
-              <td className="pr-3">{eur(sum("gross"))}</td><td className="pr-3">{eur(sum("contrib"))}</td>
-              <td className="pr-3">{eur(sum("ads"))}</td><td className="pr-3">{eur(sum("profit"))}</td><td /><td />
+              <td className="pr-3">{eur(sum("gross"))}</td><td className="pr-3">{missing > 0 || truncated ? "—" : eur(sum("contrib"))}</td>
+              <td className="pr-3">{eur(sum("ads"))}</td><td className="pr-3">{missing > 0 || truncated ? "—" : eur(sum("profit"))}</td><td /><td />
             </tr>
           </tbody>
         </table>
