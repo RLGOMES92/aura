@@ -19,8 +19,10 @@ export async function POST(req: Request) {
     if (!Array.isArray(items) || items.length === 0) return NextResponse.json({ error: "empty" }, { status: 400 });
     if (items.length > 20) return NextResponse.json({ error: "too many items" }, { status: 400 });
 
-    const allowedPriceIds = new Set(products.flatMap((p) => Object.values(p.variants)));
-    if (items.some((item) => !item || typeof item.priceId !== "string" || !allowedPriceIds.has(item.priceId)
+    const expectedAmounts = new Map(products.flatMap((p) =>
+      Object.values(p.variants).map((priceId) => [priceId, Math.round(p.price * 100)] as const)
+    ));
+    if (items.some((item) => !item || typeof item.priceId !== "string" || !expectedAmounts.has(item.priceId)
       || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 10)) {
       return NextResponse.json({ error: "invalid item" }, { status: 400 });
     }
@@ -29,7 +31,8 @@ export async function POST(req: Request) {
     // Tudo o que influencia o preço é calculado aqui, nunca no cliente.
     // Só aceitamos preços ativos, únicos e em EUR configurados no catálogo do servidor.
     const prices = await Promise.all(lines.map((l) => stripe.prices.retrieve(l.price)));
-    if (prices.some((p) => !p.active || p.currency !== "eur" || p.type !== "one_time" || !p.unit_amount || p.unit_amount <= 0)) {
+    if (prices.some((p) => !p.active || p.currency !== "eur" || p.type !== "one_time"
+      || !p.unit_amount || p.unit_amount <= 0 || p.unit_amount !== expectedAmounts.get(p.id))) {
       return NextResponse.json({ error: "invalid item" }, { status: 400 });
     }
     const subtotal = prices.reduce((s, p, i) => s + (p.unit_amount ?? 0) * lines[i].quantity, 0);
