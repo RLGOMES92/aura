@@ -9,7 +9,7 @@ function config() {
   return { url, token };
 }
 
-async function command<T>(args: (string | number)[]): Promise<T> {
+async function command(args: (string | number)[]): Promise<unknown> {
   const { url, token } = config();
   const res = await fetch(url, {
     method: "POST",
@@ -20,18 +20,18 @@ async function command<T>(args: (string | number)[]): Promise<T> {
     body: JSON.stringify(args),
     cache: "no-store",
   });
-  const data = await res.json() as { result?: T; error?: string };
+  const data = await res.json() as { result?: unknown; error?: string };
   if (!res.ok || data.error) throw new Error("Upstash idempotency command failed");
-  return data.result as T;
+  return data.result;
 }
 
 export async function isDone(key: string): Promise<boolean> {
-  return (await command<string | null>(["GET", `idempotency:done:${key}"])) === "1";
+  return (await command(["GET", `idempotency:done:${key}"])) === "1";
 }
 
 export async function acquireLock(key: string, ttlSeconds = 900): Promise<string | null> {
   const token = randomUUID();
-  const result = await command<string | null>([
+  const result = await command([
     "SET", `idempotency:lock:${key}`, token, "NX", "EX", ttlSeconds,
   ]);
   return result === "OK" ? token : null;
