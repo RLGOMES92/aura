@@ -3,8 +3,8 @@ import Link from "next/link";
 const info = [
   { n: "01", title: "Produção por encomenda", text: "As peças são produzidas depois da encomenda. Este modelo permite preparar cada artigo para o pedido recebido." },
   { n: "02", title: "Escolhe o teu tamanho", text: "A seleção atual apresenta os tamanhos S, M, L e XL. Confirma o tamanho escolhido antes de adicionares a peça ao carrinho." },
-  { n: "03", title: "Pagamento", text: "O pagamento é iniciado através do checkout seguro da Stripe. Revê os artigos e o total no carrinho antes de continuar." },
-  { n: "04", title: "Prazo indicado", text: "As páginas de produto indicam atualmente um prazo de envio de 5 a 8 dias úteis. Confirma as condições aplicáveis antes de concluir a compra." },
+  { n: "03", title: "Pagamento", text: "O pagamento é iniciado pelo checkout da Stripe. Os valores são apresentados em reais (BRL); o frete é pago pelo cliente e informado no checkout." },
+  { n: "04", title: "Prazo indicado", text: "A Printful informa estimativas médias de entrega ao Brasil que podem variar conforme o produto, a produção e o CEP. Consulte o prazo atualizado antes de concluir a compra; não considere estimativas como garantia." },
 ];
 
 export const metadata = {
