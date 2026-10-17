@@ -19,13 +19,13 @@ const variants = (printfulName: string, slug: string) =>
 const base: Omit<Product, "variants">[] = [
   {
     slug: "less-noise-tee", printfulName: "Less Noise Tee", name: "Less Noise Tee",
-    tagline: "Heavyweight cotton. One sentence on the back.",
+    tagline: "Algodão encorpado. Uma frase no verso.",
     description: "T-shirt boxy fit em algodão pesado, estampa minimalista na frente. Feita por encomenda, sem stock parado.",
     price: 34,
   },
   {
     slug: "stay-quiet-hoodie", printfulName: "Stay Quiet Hoodie", name: "Stay Quiet Hoodie",
-    tagline: "Oversized, soft inside, loud only in meaning.",
+    tagline: "Corte oversized e interior macio. A mensagem fala por si.",
     description: "Hoodie oversized com bordado discreto. Corte limpo, tecido que mantém a forma depois de lavar.",
     price: 64,
   },
