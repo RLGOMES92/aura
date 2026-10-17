@@ -14,17 +14,26 @@ const TT = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
 type Ev = "ViewContent" | "AddToCart" | "Purchase";
 type Data = { name: string; value: number };
 
-// Espera que o pixel carregue (afterInteractive); sem consentimento, desiste ao fim de 5s.
-function whenReady(fn: () => void, tries = 25) {
-  if (window.fbq || window.ttq) return fn();
-  if (tries > 0) setTimeout(() => whenReady(fn, tries - 1), 200);
+// Cada pixel é tratado separadamente: a falha de um não bloqueia o outro.
+function whenReady(kind: "meta" | "tiktok", fn: () => void, tries = 25) {
+  const ready = kind === "meta" ? Boolean(window.fbq) : Boolean(window.ttq);
+  if (ready) return fn();
+  if (tries > 0) setTimeout(() => whenReady(kind, fn, tries - 1), 200);
+}
+
+function hasMarketingConsent() {
+  return document.cookie.split(";").some((part) => part.trim() === "consent=1");
 }
 
 export function track(event: Ev, d: Data, eventId?: string) {
-  whenReady(() => {
-    const p = { content_name: d.name, value: d.value, currency: "EUR" };
-    window.fbq?.("track", event, p, eventId ? { eventID: eventId } : undefined);
-    window.ttq?.track(event === "Purchase" ? "CompletePayment" : event, p, eventId ? { event_id: eventId } : undefined);
+  const p = { content_name: d.name, value: d.value, currency: "EUR" };
+  if (FB) whenReady("meta", () => {
+    if (!hasMarketingConsent() || !window.fbq) return;
+    window.fbq("track", event, p, eventId ? { eventID: eventId } : undefined);
+  });
+  if (TT) whenReady("tiktok", () => {
+    if (!hasMarketingConsent() || !window.ttq) return;
+    window.ttq.track(event === "Purchase" ? "CompletePayment" : event, p, eventId ? { event_id: eventId } : undefined);
   });
 }
 
