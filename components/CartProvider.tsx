@@ -77,7 +77,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         <nav aria-label="Navegação principal" className="hidden items-center gap-7 text-xs font-extrabold uppercase tracking-[0.12em] md:flex">
           <Link href="/#colecao" className="transition hover:text-[#e94f2e]">Coleção</Link>
           <Link href="/#ideia" className="transition hover:text-[#e94f2e]">A ideia</Link>
-          <Link href="/retirada" className="transition hover:text-[#e94f2e]">Informações de compra</Link>
+          <Link href="/informacoes-de-compra" className="transition hover:text-[#e94f2e]">Informações de compra</Link>
         </nav>
         <button onClick={() => setOpen(true)} className="border-2 border-black bg-[#d8ff36] px-4 py-2 text-xs font-black uppercase tracking-wide transition hover:bg-[#ff633e] md:px-5 md:py-3" aria-label={`Abrir carrinho, ${count} artigos`}>
           Carrinho ({count})
