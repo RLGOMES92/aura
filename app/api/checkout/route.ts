@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import Stripe from "stripe";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, COUNTRIES } from "@/lib/shipping";
 import { bundleDiscount, slugOfPrice } from "@/lib/bundle";
+import { products } from "@/lib/products";
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY is not configured");
@@ -16,11 +17,21 @@ export async function POST(req: Request) {
       items: { priceId: string; qty: number }[]; marketing?: boolean;
     };
     if (!Array.isArray(items) || items.length === 0) return NextResponse.json({ error: "empty" }, { status: 400 });
+    if (items.length > 20) return NextResponse.json({ error: "too many items" }, { status: 400 });
 
-    const lines = items.map((i) => ({ price: i.priceId, quantity: Math.min(Math.max(Math.floor(i.qty) || 1, 1), 10) }));
+    const allowedPriceIds = new Set(products.flatMap((p) => Object.values(p.variants)));
+    if (items.some((item) => !item || typeof item.priceId !== "string" || !allowedPriceIds.has(item.priceId)
+      || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 10)) {
+      return NextResponse.json({ error: "invalid item" }, { status: 400 });
+    }
+    const lines = items.map((i) => ({ price: i.priceId, quantity: i.qty }));
 
-    // Tudo o que influencia o preço é calculado aqui, nunca no cliente
+    // Tudo o que influencia o preço é calculado aqui, nunca no cliente.
+    // Só aceitamos preços ativos, únicos e em EUR configurados no catálogo do servidor.
     const prices = await Promise.all(lines.map((l) => stripe.prices.retrieve(l.price)));
+    if (prices.some((p) => !p.active || p.currency !== "eur" || p.type !== "one_time" || !p.unit_amount || p.unit_amount <= 0)) {
+      return NextResponse.json({ error: "invalid item" }, { status: 400 });
+    }
     const subtotal = prices.reduce((s, p, i) => s + (p.unit_amount ?? 0) * lines[i].quantity, 0);
     const discount = bundleDiscount(
       prices.map((p, i) => ({ slug: slugOfPrice.get(p.id), qty: lines[i].quantity, unit: p.unit_amount ?? 0 }))
