@@ -69,6 +69,12 @@ export async function POST(req: Request) {
       line_items: lines,
       ...discountParams,
       shipping_address_collection: { allowed_countries: [...COUNTRIES] },
+      custom_fields: [{
+        key: "cpf_cnpj",
+        label: { type: "custom", custom: "CPF ou CNPJ do destinatário" },
+        type: "text",
+        text: { maximum_length: 18 },
+      }],
       shipping_options: [{
         shipping_rate_data: {
           type: "fixed_amount",
