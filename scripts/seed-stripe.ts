@@ -15,41 +15,14 @@ async function pf(path: string) {
   return json.result;
 }
 
-const FALLBACK_PRODUCTS = [
-  { name: "Less Noise Tee", price: 3400, sizes: ["S", "M", "L", "XL"] },
-  { name: "Stay Quiet Hoodie", price: 6400, sizes: ["S", "M", "L", "XL"] },
-] as const;
-
-async function createFallbackMap() {
-  const out: Record<string, Record<string, string>> = {};
-
-  for (const product of FALLBACK_PRODUCTS) {
-    for (const size of product.sizes) {
-      const stripeName = `${product.name} / ${size}`;
-      const productRecord = await stripe.products.create({
-        name: stripeName,
-        metadata: { printful_sync_variant_id: `fallback_${product.name.toLowerCase().replace(/\s+/g, "-")}_${size}`, printful_product: product.name },
-        default_price_data: { currency: "eur", unit_amount: product.price },
-      });
-
-      const priceId = productRecord.default_price as string;
-      (out[product.name] ??= {})[size] = priceId;
-      console.log(`${stripeName} -> ${priceId}`);
-    }
-  }
-
-  return out;
-}
-
 async function main() {
   const list = await pf("/store/products?limit=100");
   const out: Record<string, Record<string, string>> = {};
 
-  if (list.length === 0) {
-    console.log("Printful sem produtos sincronizados. Criando fallback de demo na Stripe...");
-    const fallback = await createFallbackMap();
-    Object.assign(out, fallback);
-  } else {
+  if (!Array.isArray(list) || list.length === 0) {
+    throw new Error("Nenhum produto sincronizado encontrado na Printful. Sincroniza as variantes reais antes de executar o seed; não serão criados IDs fictícios.");
+  }
+  {
     for (const sp of list) {
       const { sync_product, sync_variants } = await pf(`/store/products/${sp.id}`);
       for (const v of sync_variants) {
