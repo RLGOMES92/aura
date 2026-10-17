@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "seed": "tsx --env-file=.env.local scripts/seed-stripe.ts",
-    "check:production-env": "node scripts/check-production-env.mjs"
+    "check:production-env": "node scripts/check-production-env.mjs",
+    "check:catalog": "tsx scripts/check-catalog.ts"
   },
   "dependencies": {
     "next": "^15.1.0",
