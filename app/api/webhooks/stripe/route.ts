@@ -48,18 +48,30 @@ async function createPrintfulOrder(session: Stripe.Checkout.Session) {
 
   if (items.length === 0) throw new Error("Sem itens no checkout");
 
-  // Por defeito cria RASCUNHO. Só confirma (e cobra o teu saldo) com PRINTFUL_CONFIRM=true
-  const confirm = process.env.PRINTFUL_CONFIRM === "true" ? "?confirm=true" : "";
   const headers: Record<string, string> = {
     Authorization: `Bearer ${process.env.PRINTFUL_TOKEN}`, "Content-Type": "application/json",
   };
   if (process.env.PRINTFUL_STORE_ID) headers["X-PF-Store-Id"] = process.env.PRINTFUL_STORE_ID;
 
+  // Stripe pode reenviar o webhook depois de o pedido Printful já ter sido criado
+  // (por exemplo, se o Zoho falhar). Recupera a encomenda existente antes de criar.
+  const externalOrderUrl = `https://api.printful.com/orders/@${encodeURIComponent(session.id)}`;
+  const existingResponse = await fetch(externalOrderUrl, { headers });
+  if (existingResponse.ok) {
+    const existing = await existingResponse.json();
+    return existing.result;
+  }
+  if (existingResponse.status !== 404) {
+    throw new Error(`Printful lookup: HTTP ${existingResponse.status}`);
+  }
+
+  // Por defeito cria RASCUNHO. Só confirma (e cobra o teu saldo) com PRINTFUL_CONFIRM=true.
+  const confirm = process.env.PRINTFUL_CONFIRM === "true" ? "?confirm=true" : "";
   const res = await fetch(`https://api.printful.com/orders${confirm}`, {
     method: "POST",
     headers,
     body: JSON.stringify({
-      external_id: session.id, // idempotência: o mesmo session.id não duplica
+      external_id: session.id,
       recipient: {
         name: ship.name, address1: ship.address.line1, address2: ship.address.line2 ?? "",
         city: ship.address.city, state_code: ship.address.state ?? "", country_code: ship.address.country,
@@ -69,7 +81,15 @@ async function createPrintfulOrder(session: Stripe.Checkout.Session) {
     }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(`Printful: ${JSON.stringify(json)}`);
+  if (!res.ok) {
+    // Fecha a condição de corrida: outra entrega pode ter criado o mesmo external_id.
+    const retryLookup = await fetch(externalOrderUrl, { headers });
+    if (retryLookup.ok) {
+      const existing = await retryLookup.json();
+      return existing.result;
+    }
+    throw new Error(`Printful: ${JSON.stringify(json)}`);
+  }
   return json.result;
 }
 
@@ -138,8 +158,10 @@ export async function POST(req: Request) {
 
     const order = await createPrintfulOrder(session);
 
-    // CRM e pixels falharem nunca deve impedir o fulfillment
-    try { await syncZoho(session, order.id); } catch (e) { console.error("[zoho]", e); }
+    // O pedido Printful já é idempotente por external_id. Se o CRM falhar,
+    // devolvemos 5xx para a Stripe repetir; a repetição recupera o pedido existente
+    // e tenta novamente sincronizar o Zoho, sem criar outra encomenda.
+    await syncZoho(session, order.id);
     try { await sendPurchase(session); } catch (e) { console.error("[capi]", e); }
 
     return NextResponse.json({ received: true });
