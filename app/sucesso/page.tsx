@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import Link from "next/link";
 import { PageEvent } from "@/components/Pixels";
 
 export const metadata = { title: "Encomenda confirmada" };
@@ -28,7 +29,7 @@ export default async function Sucesso({ searchParams }: { searchParams: Promise<
       ) : (
         <p className="mt-4 max-w-md">Ainda não conseguimos validar o pagamento. Se já concluíste o checkout, verifica o e-mail de confirmação antes de tentar pagar novamente.</p>
       )}
-      <a href="/" className="mt-8 inline-block bg-cobalt px-8 py-4 font-bold text-white">Voltar à loja</a>
+      <Link href="/" className="mt-8 inline-block bg-cobalt px-8 py-4 font-bold text-white">Voltar à loja</Link>
     </main>
   );
 }
