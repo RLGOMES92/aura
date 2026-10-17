@@ -145,12 +145,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true });
   }
 
-  if (event.type !== "checkout.session.completed") return NextResponse.json({ received: true });
+  if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") {
+    return NextResponse.json({ received: true });
+  }
 
   try {
     const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
       expand: ["line_items.data.price.product"],
     });
+
+    // Métodos de pagamento assíncronos só podem gerar fulfillment após confirmação do pagamento.
+    // O evento async_payment_succeeded volta a passar por este fluxo quando o pagamento liquida.
+    if (session.payment_status !== "paid") {
+      console.info("[webhook] Payment not settled yet", session.id, session.payment_status);
+      return NextResponse.json({ received: true, pending: true });
+    }
 
     if (!session.collected_information?.shipping_details?.address || !session.customer_details?.email || !session.line_items?.data?.length || !hasPrintfulMetadata(session)) {
       console.warn(`[webhook] Ignorando checkout sintético/incompleto: ${session.id}`);
