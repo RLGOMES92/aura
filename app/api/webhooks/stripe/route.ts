@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { zoho } from "@/lib/zoho";
 import { sendPurchase } from "@/lib/capi";
+import { acquireLock, isDone, markDone, releaseLock } from "@/lib/idempotency";
 
 export const runtime = "nodejs";
 
@@ -156,15 +157,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, ignored: true });
     }
 
-    const order = await createPrintfulOrder(session);
+    // Lock distribuído: evita que entregas concorrentes criem dois registos no CRM.
+    // Se Redis não estiver configurado, falhamos de forma segura em vez de arriscar duplicados.
+    const key = `stripe-session:${session.id}`;
+    if (await isDone(key)) return NextResponse.json({ received: true, duplicate: true });
 
-    // O pedido Printful já é idempotente por external_id. Se o CRM falhar,
-    // devolvemos 5xx para a Stripe repetir; a repetição recupera o pedido existente
-    // e tenta novamente sincronizar o Zoho, sem criar outra encomenda.
-    await syncZoho(session, order.id);
-    try { await sendPurchase(session); } catch (e) { console.error("[capi]", e); }
+    const lock = await acquireLock(key);
+    if (!lock) return NextResponse.json({ error: "processing; retry webhook" }, { status: 500 });
 
-    return NextResponse.json({ received: true });
+    try {
+      if (await isDone(key)) return NextResponse.json({ received: true, duplicate: true });
+
+      // Printful é consultada por external_id antes da criação, pelo que uma repetição
+      // após falha do CRM recupera o mesmo pedido em vez de o criar de novo.
+      const order = await createPrintfulOrder(session);
+      await syncZoho(session, order.id);
+      try { await sendPurchase(session); } catch (e) { console.error("[capi]", e); }
+      await markDone(key);
+      return NextResponse.json({ received: true });
+    } finally {
+      try { await releaseLock(key, lock); } catch (e) { console.error("[idempotency] release lock failed", e); }
+    }
   } catch (e) {
     console.error("[printful]", e);
     return NextResponse.json({ error: "fulfillment failed" }, { status: 500 }); // Stripe repete
