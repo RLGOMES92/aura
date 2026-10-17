@@ -12,17 +12,27 @@ export const useCart = () => useContext(CartCtx);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const [isOpen, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    try { setItems(JSON.parse(localStorage.getItem("cart") ?? "[]")); } catch {}
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem("cart") ?? "[]");
+      if (Array.isArray(saved)) setItems(saved as CartItem[]);
+    } catch {
+      // Um carrinho corrompido não deve impedir a loja de abrir.
+    } finally {
+      setHydrated(true);
+    }
   }, []);
   useEffect(() => {
+    // Não sobrescrever o carrinho persistido com o estado inicial vazio antes da hidratação.
+    if (!hydrated) return;
     try { localStorage.setItem("cart", JSON.stringify(items)); } catch {}
-  }, [items]);
+  }, [items, hydrated]);
 
   const add: Ctx["add"] = (i) => {
     setItems((cur) => {
