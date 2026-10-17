@@ -29,12 +29,19 @@ async function save(fd: FormData) {
 export default async function Admin() {
   const [{ rows, missing, orders, truncated }, spend] = await Promise.all([getStats(30), getSpend()]);
 
-  const data = rows.map((r) => {
-    const contrib = r.net - r.printful - r.fees;
-    const ads = spend[r.product] ?? 0;
-    return { ...r, contrib, ads, profit: contrib - ads,
-      roas: ads > 0 && r.costComplete ? r.net / ads : null,
-      be: contrib > 0 && r.costComplete ? r.net / contrib : null };
+  // Include products without sales so their ad spend remains visible.
+  const reportRows = [...rows];
+  for (const product of products) {
+    if (!reportRows.some((row) => row.product === product.name)) {
+      reportRows.push({ product: product.name, orders: 0, units: 0, gross: 0, net: 0, printful: 0, fees: 0, costComplete: true });
+    }
+  }
+  const data = reportRows.map((row) => {
+    const contrib = row.net - row.printful - row.fees;
+    const ads = spend[row.product] ?? 0;
+    return { ...row, contrib, ads, profit: contrib - ads,
+      roas: ads > 0 ? row.net / ads : null,
+      be: contrib > 0 && row.costComplete ? row.net / contrib : null };
   });
   const sum = (k: "gross" | "net" | "contrib" | "ads" | "profit") => data.reduce((a, r) => a + r[k], 0);
 
@@ -77,10 +84,10 @@ export default async function Admin() {
         <p className="mt-2 text-sm text-stone">Define UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN para guardar o gasto.</p>
       ) : (
         <form action={save} className="mt-3 max-w-sm space-y-3">
-          {rows.map((r) => (
-            <label key={r.product} className="flex items-center justify-between gap-3 font-semibold">
-              {r.product}
-              <input name={`spend:${r.product}`} inputMode="decimal" defaultValue={spend[r.product] ?? 0}
+          {products.map((product) => (
+            <label key={product.name} className="flex items-center justify-between gap-3 font-semibold">
+              {product.name}
+              <input name={`spend:${product.name}`} inputMode="decimal" defaultValue={spend[product.name] ?? 0}
                 className="w-28 border border-black bg-paper p-2 text-right" />
             </label>
           ))}
