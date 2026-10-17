@@ -23,7 +23,7 @@ export default function InformacoesDeCompra() {
       <section className="px-5 py-12 md:px-10 md:py-16">
         <div className="grid gap-0 border-t-2 border-black md:grid-cols-2">
           {info.map((item) => (
-            <article key={item.n} className="border-b-2 border-black py-7 md:px-7 md:py-9 md:first:pl-0 md:nth-[2]:border-l-2 md:nth-[2]:pl-7">
+            <article key={item.n} className="border-b-2 border-black py-7 md:px-7 md:py-9 md:first:pl-0 md:[&:nth-child(2)]:border-l-2 md:[&:nth-child(2)]:pl-7">
               <p className="mb-8 text-sm font-black text-[#e94f2e]">{item.n} /</p>
               <h2 className="text-2xl font-black tracking-tight md:text-3xl">{item.title}</h2>
               <p className="mt-3 max-w-md leading-relaxed text-neutral-600">{item.text}</p>
