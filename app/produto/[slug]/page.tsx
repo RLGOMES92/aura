@@ -64,7 +64,7 @@ export default async function PDP({ params }: Props) {
             </dl>
           </div>
           <p className="mt-5 text-xs leading-relaxed text-neutral-500">Consulta as informações de compra antes de finalizar a encomenda. O prazo e as condições aplicáveis devem ser confirmados na página de informações da loja.</p>
-          <Link href="/retirada" className="mt-2 w-fit border-b border-black pb-1 text-xs font-bold uppercase tracking-wider hover:text-[#e94f2e]">Informações de compra ↗</Link>
+          <Link href="/informacoes-de-compra" className="mt-2 w-fit border-b border-black pb-1 text-xs font-bold uppercase tracking-wider hover:text-[#e94f2e]">Informações de compra ↗</Link>
         </div>
       </section>
       <section className="bg-[#151515] px-5 py-12 text-white md:px-10 md:py-16">
