@@ -38,8 +38,8 @@ if (process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith("
   warnings.push("STRIPE_SECRET_KEY não parece ser uma chave live; confirma antes de receber pagamentos reais.");
 }
 
-const adminWhatsApp = process.env.ADMIN_WHATSAPP_TO?.replace(/\\D/g, "");
-if (adminWhatsApp && !/^55\\d{10,11}$/.test(adminWhatsApp)) {
+const adminWhatsApp = process.env.ADMIN_WHATSAPP_TO?.replace(/\D/g, "");
+if (adminWhatsApp && !/^55\d{10,11}$/.test(adminWhatsApp)) {
   warnings.push("ADMIN_WHATSAPP_TO deve conter o número brasileiro com DDI 55, DDD e número, apenas dígitos.");
 }
 
