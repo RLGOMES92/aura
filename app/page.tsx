@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { products, eur } from "@/lib/products";
+import { products, brl } from "@/lib/products";
 import { ProductImage } from "@/components/ProductImage";
 
 const benefits = [
@@ -30,8 +30,8 @@ export default function Home() {
       </section>
       <section id="colecao" className="px-5 py-16 md:px-10 md:py-24">
         <div className="mb-8 flex flex-col justify-between gap-4 md:mb-12 md:flex-row md:items-end"><div><p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-[#ff633e]">Escolha sua base</p><h2 className="text-4xl font-black leading-none tracking-[-0.06em] md:text-6xl">A coleção atual<span className="text-[#ff633e]">.</span></h2></div><p className="max-w-md text-sm leading-relaxed text-black/70 md:text-base">Comece por uma das nossas peças e explore as opções de tamanho e personalização disponíveis.</p></div>
-        <div className="grid gap-5 sm:grid-cols-2 md:gap-8">{products.map((product, index) => <Link key={product.slug} href={`/produto/${product.slug}`} className="group block"><div className="relative overflow-hidden border-2 border-black bg-white"><ProductImage product={product} priority={index === 0} /><span className="absolute left-3 top-3 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest">{index === 0 ? "A peça essencial" : "Conforto + atitude"}</span><span className="absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-[#d8ff36] text-xl font-black transition group-hover:rotate-45">↗</span></div><div className="flex items-start justify-between gap-4 border-b-2 border-black py-4"><div><h3 className="text-xl font-black tracking-tight md:text-2xl">{product.name}</h3><p className="mt-1 text-sm text-black/65">{product.tagline}</p></div><span className="shrink-0 text-lg font-black">{eur(product.price)}</span></div></Link>)}</div>
-        <p className="mt-4 text-xs text-black/55">Valores exibidos conforme a configuração atual da loja. A moeda e o checkout para venda no Brasil precisam ser alinhados antes da abertura oficial.</p>
+        <div className="grid gap-5 sm:grid-cols-2 md:gap-8">{products.map((product, index) => <Link key={product.slug} href={`/produto/${product.slug}`} className="group block"><div className="relative overflow-hidden border-2 border-black bg-white"><ProductImage product={product} priority={index === 0} /><span className="absolute left-3 top-3 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest">{index === 0 ? "A peça essencial" : "Conforto + atitude"}</span><span className="absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-[#d8ff36] text-xl font-black transition group-hover:rotate-45">↗</span></div><div className="flex items-start justify-between gap-4 border-b-2 border-black py-4"><div><h3 className="text-xl font-black tracking-tight md:text-2xl">{product.name}</h3><p className="mt-1 text-sm text-black/65">{product.tagline}</p></div><span className="shrink-0 text-lg font-black">{brl(product.price)}</span></div></Link>)}</div>
+        <p className="mt-4 text-xs text-black/55">Preços em reais (BRL). O frete é calculado no checkout.</p>
       </section>
       <section id="personalize" className="relative overflow-hidden bg-[#111] px-5 py-16 text-white md:px-10 md:py-24">
         <div aria-hidden="true" className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#ff633e] md:right-12 md:top-8 md:h-80 md:w-80" />
