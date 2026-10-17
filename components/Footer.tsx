@@ -11,6 +11,9 @@ export function Footer() {
         <nav aria-label="Informações da loja" className="grid grid-cols-2 gap-x-5 gap-y-4 text-xs font-bold uppercase tracking-[0.12em] md:justify-self-end">
           <Link className="transition hover:text-[#d8ff36]" href="/#colecao">Coleção</Link>
           <Link className="transition hover:text-[#d8ff36]" href="/informacoes-de-compra">Informações de compra</Link>
+          <Link className="transition hover:text-[#d8ff36]" href="/legal/envios-e-devolucoes">Envios e devoluções</Link>
+          <Link className="transition hover:text-[#d8ff36]" href="/legal/termos">Termos e condições</Link>
+          <Link className="transition hover:text-[#d8ff36]" href="/legal/privacidade">Privacidade</Link>
           <a className="transition hover:text-[#d8ff36]" href="https://www.livroreclamacoes.pt" target="_blank" rel="noopener noreferrer">Livro de Reclamações ↗</a>
         </nav>
       </div>
