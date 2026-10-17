@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { zoho } from "@/lib/zoho";
+import { acquireLock, isDone, markDone, releaseLock } from "@/lib/idempotency";
 
 export async function POST(req: Request) {
   try {
@@ -30,28 +31,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "order not found" }, { status: 400 });
     }
 
-    // Contacto: usa o existente (não sobrescreve nome) ou cria
-    const found = await zoho("GET", `Contacts/search?email=${encodeURIComponent(email)}`);
-    const contactId: string =
-      found?.data?.[0]?.id ?? (await zoho("POST", "Contacts", { data: [{ Email: email, Last_Name: name }] })).data[0].details.id;
+    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+      return NextResponse.json({ error: "temporarily unavailable" }, { status: 503 });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const key = `withdrawal:${order.trim()}`;
+    if (await isDone(key)) return NextResponse.json({ ok: true, duplicate: true });
+    const lock = await acquireLock(key, 120);
+    if (!lock) return NextResponse.json({ error: "request processing; retry" }, { status: 503 });
 
-    // Evita criar tarefas duplicadas quando o cliente repete o envio após timeout.
-    // A pesquisa não elimina a condição de corrida entre duas requisições simultâneas.
-    const subject = `Retirada de contrato - ${order.trim()}`;
-    const existingTask = await zoho("GET", `Tasks/search?criteria=${encodeURIComponent(`(Subject:equals:${subject})`)}`);
-    if (existingTask?.data?.length) return NextResponse.json({ ok: true, duplicate: true });
+    try {
+      if (await isDone(key)) return NextResponse.json({ ok: true, duplicate: true });
 
-    const due = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
-    await zoho("POST", "Tasks", {
-      data: [{
-        Subject: subject,
-        Description: `${name} <${email}> | Pedido ${order} | Recebida em ${new Date().toISOString()}`,
-        Who_Id: { id: contactId },
-        Due_Date: due,
-        Priority: "High",
-      }],
-    });
-    return NextResponse.json({ ok: true });
+      const subject = `Retirada de contrato - ${order.trim()}`;
+      const existingTask = await zoho("GET", `Tasks/search?criteria=${encodeURIComponent(`(Subject:equals:${subject})`)}`);
+      if (existingTask?.data?.length) {
+        await markDone(key);
+        return NextResponse.json({ ok: true, duplicate: true });
+      }
+
+      // Contacto: usa o existente (não sobrescreve nome) ou cria
+      const found = await zoho("GET", `Contacts/search?email=${encodeURIComponent(normalizedEmail)}`);
+      const contactId: string =
+        found?.data?.[0]?.id ?? (await zoho("POST", "Contacts", { data: [{ Email: normalizedEmail, Last_Name: name.trim() }] })).data[0].details.id;
+
+      const due = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
+      await zoho("POST", "Tasks", {
+        data: [{
+          Subject: subject,
+          Description: `${name.trim()} <${normalizedEmail}> | Pedido ${order.trim()} | Recebida em ${new Date().toISOString()}`,
+          Who_Id: { id: contactId },
+          Due_Date: due,
+          Priority: "High",
+        }],
+      });
+      await markDone(key);
+      return NextResponse.json({ ok: true });
+    } finally {
+      try { await releaseLock(key, lock); } catch (e) { console.error("[idempotency] release lock failed", e); }
+    }
   } catch (e) {
     console.error("[retirada] Request failed", e instanceof Error ? e.message : "unknown error");
     return NextResponse.json({ error: "failed" }, { status: 500 });
