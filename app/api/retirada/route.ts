@@ -35,10 +35,16 @@ export async function POST(req: Request) {
     const contactId: string =
       found?.data?.[0]?.id ?? (await zoho("POST", "Contacts", { data: [{ Email: email, Last_Name: name }] })).data[0].details.id;
 
+    // Evita criar tarefas duplicadas quando o cliente repete o envio após timeout.
+    // A pesquisa não elimina a condição de corrida entre duas requisições simultâneas.
+    const subject = `Retirada de contrato - ${order.trim()}`;
+    const existingTask = await zoho("GET", `Tasks/search?criteria=${encodeURIComponent(`(Subject:equals:${subject})`)}`);
+    if (existingTask?.data?.length) return NextResponse.json({ ok: true, duplicate: true });
+
     const due = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
     await zoho("POST", "Tasks", {
       data: [{
-        Subject: `Retirada de contrato - ${order}`,
+        Subject: subject,
         Description: `${name} <${email}> | Pedido ${order} | Recebida em ${new Date().toISOString()}`,
         Who_Id: { id: contactId },
         Due_Date: due,
