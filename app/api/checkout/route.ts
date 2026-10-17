@@ -5,14 +5,19 @@ import { SHIPPING_FEE, COUNTRIES } from "@/lib/shipping";
 import { bundleDiscount, slugOfPrice } from "@/lib/bundle";
 import { products } from "@/lib/products";
 
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY is not configured");
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
-}
-
 export async function POST(req: Request) {
+  // Preview deployments intentionally do not receive production payment secrets.
+  // Return a controlled service-unavailable response instead of logging a runtime exception.
+  const stripeSecret = process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecret) {
+    return NextResponse.json(
+      { error: "checkout unavailable", code: "PAYMENT_CONFIGURATION_MISSING" },
+      { status: 503 }
+    );
+  }
+
   try {
-    const stripe = getStripe();
+    const stripe = new Stripe(stripeSecret);
     const { items, marketing } = (await req.json()) as {
       items: { priceId: string; qty: number }[]; marketing?: boolean;
     };
