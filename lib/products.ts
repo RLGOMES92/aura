@@ -18,19 +18,19 @@ const variants = (printfulName: string, slug: string) =>
 
 const base: Omit<Product, "variants">[] = [
   {
-    slug: "less-noise-tee", printfulName: "Less Noise Tee", name: "Less Noise Tee",
+    slug: "less-noise-tee", printfulName: "Less Noise Tee", name: "Camiseta Less Noise",
     tagline: "Algodão encorpado. Uma frase no verso.",
-    description: "T-shirt boxy fit em algodão pesado, estampa minimalista na frente. Feita por encomenda, sem stock parado.",
+    description: "Camiseta de modelagem boxy em algodão encorpado, com estampa minimalista na frente. Feita por encomenda.",
     price: 34,
   },
   {
-    slug: "stay-quiet-hoodie", printfulName: "Stay Quiet Hoodie", name: "Stay Quiet Hoodie",
+    slug: "stay-quiet-hoodie", printfulName: "Stay Quiet Hoodie", name: "Moletom Stay Quiet",
     tagline: "Corte oversized e interior macio. A mensagem fala por si.",
-    description: "Hoodie oversized com bordado discreto. Corte limpo, tecido que mantém a forma depois de lavar.",
+    description: "Moletom com capuz, modelagem oversized e bordado discreto. Corte limpo e tecido confortável para o dia a dia.",
     price: 64,
   },
 ];
 
 export const products: Product[] = base.map((p) => ({ ...p, variants: variants(p.printfulName, p.slug) }));
 export const getProduct = (slug: string) => products.find((p) => p.slug === slug);
-export const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(n);
+export const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(n); // preços e Stripe continuam em EUR até configurar venda em BRL
