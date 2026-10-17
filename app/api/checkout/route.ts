@@ -33,7 +33,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "invalid item" }, { status: 400 });
     }
 
-    const subtotal = prices.reduce((s, p, i) => s + (p.unit_amount ?? 0) * lines[i].quantity, 0);
     const discount = bundleDiscount(
       prices.map((p, i) => ({ slug: slugOfPrice.get(p.id), qty: lines[i].quantity, unit: p.unit_amount ?? 0 }))
     );
